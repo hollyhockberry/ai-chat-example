@@ -49,7 +49,32 @@ void setup() {
   M5_LOGI("Connected to WiFi");
 
   _client.begin();
+  _client.AddSystem(
+    "感情を表現した会話のシミュレーションを行います。"\
+    "会話におけるあなたの感情を[]で囲んで回答の先頭に付加してください。"\
+    "感情は Happy, Angry, Sad, Doubt, Sleepy のいずれかを選択してください。"
+  );
   _message = "";
+}
+
+bool split(const String& str, String& message, String& emotion) {
+  message = "";
+  emotion = "";
+  auto n = 0;
+  while (true) {
+    auto s = str.indexOf('[', n);
+    auto e = str.indexOf(']', n);
+    if (s < 0 || e < 0) {
+      message += str.substring(n);
+      break;
+    }
+    if (s > 0) {
+      message += str.substring(n, s);
+    }
+    emotion = str.substring(s + 1, e).c_str();
+    n = e + 1;
+  }
+  return true;
 }
 
 void loop() {
@@ -62,7 +87,10 @@ void loop() {
       if (!_message.isEmpty()) {
         Serial.printf("You: %s\r\n", _message.c_str());
         if (_client.Chat(_message.c_str(), res)) {
-          Serial.printf("GPT: %s\r\n", res.c_str());
+          String message, emotion;
+          if (split(res, message, emotion)) {
+            Serial.printf("GPT: %s (emotion=%s)\r\n", message.c_str(), emotion.c_str());
+          }
         }
         _message.clear();
       }
